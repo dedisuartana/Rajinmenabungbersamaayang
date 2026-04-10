@@ -82,18 +82,28 @@
             <button type="submit" id="btn-submit">Simpan Tabungan</button>
             <div id="status-pesan" class="loading hidden">Menyimpan data...</div>
         </form>
-    </div>
+    </div> 
     <script>
 
-   const scriptURL = 'https://script.google.com/macros/s/AKfycbxLigCBg2-W5a9grqqNAs44Li94HYVXfCMrZeF7SNAErnKyo_8-O_UtGhPLlbvcFUb_VQ/exec';
+  // JANGAN LUPA: Ganti dengan URL Web App Apps Script kamu yang terbaru!
+const scriptURL = 'https://script.google.com/macros/s/AKfycbxLigCBg2-W5a9grqqNAs44Li94HYVXfCMrZeF7SNAErnKyo_8-O_UtGhPLlbvcFUb_VQ/exec';
 
-// 1. Logika Login dari Spreadsheet
+// === BAGIAN DEKLARASI VARIABEL (Ini yang tadi hilang / bikin error) ===
+const loginSection = document.getElementById('login-section');
+const nabungSection = document.getElementById('nabung-section');
+const loginForm = document.getElementById('login-form');
+const nabungForm = document.getElementById('nabung-form');
+const inputNama = document.getElementById('nama');
+const inputTanggal = document.getElementById('tanggal');
+const statusPesan = document.getElementById('status-pesan');
+const btnSubmit = document.getElementById('btn-submit');
+
+// === 1. LOGIKA LOGIN DARI SPREADSHEET ===
 loginForm.addEventListener('submit', function(e) {
     e.preventDefault();
     const user = document.getElementById('username').value;
     const pass = document.getElementById('password').value;
 
-    // Menyiapkan data untuk dikirim ke Apps Script
     const loginData = new FormData();
     loginData.append('action', 'login');
     loginData.append('username', user);
@@ -102,7 +112,9 @@ loginForm.addEventListener('submit', function(e) {
     fetch(scriptURL, { method: 'POST', body: loginData })
         .then(response => response.text())
         .then(result => {
-            if (result === "Login_Success") {
+            console.log("Respon Server: ", result); // Untuk ngecek di console
+
+            if (result.trim() === "Login_Success") {
                 loginSection.classList.add('hidden');
                 nabungSection.classList.remove('hidden');
                 inputNama.value = user;
@@ -110,26 +122,31 @@ loginForm.addEventListener('submit', function(e) {
             } else {
                 alert("Username atau Password salah!");
             }
+        })
+        .catch(error => {
+            console.error('Error saat login:', error);
+            alert('Gagal menghubungi server.');
         });
 });
 
-// 2. Logika Simpan Tabungan
+// === 2. LOGIKA SIMPAN TABUNGAN ===
 nabungForm.addEventListener('submit', function(e) {
     e.preventDefault();
     btnSubmit.classList.add('hidden');
     statusPesan.classList.remove('hidden');
 
     const formData = new FormData(nabungForm);
-    formData.append('action', 'saveData'); // Tambahkan parameter action
+    formData.append('action', 'saveData');
 
     fetch(scriptURL, { method: 'POST', body: formData })
         .then(response => {
-            alert('Tabungan berhasil dicatat ke Hasna Medika Mobile!');
+            alert('Tabungan berhasil dicatat ke sistem!');
             document.getElementById('jumlah').value = '';
             btnSubmit.classList.remove('hidden');
             statusPesan.classList.add('hidden');
         })
         .catch(error => {
+            console.error('Error saat simpan:', error);
             alert('Gagal menyimpan data.');
             btnSubmit.classList.remove('hidden');
             statusPesan.classList.add('hidden');
