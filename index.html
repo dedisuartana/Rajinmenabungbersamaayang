@@ -7,21 +7,35 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f7f6;
+            background-color: #000;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
+            overflow: hidden;
         }
+        
+        .aurora-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
         .container {
-            background: white;
+            background: rgba(255, 255, 255, 0.9);
             padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             width: 100%;
             max-width: 400px;
+            position: relative; 
+            z-index: 10;
         }
+        
         h2 { text-align: center; color: #333; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
@@ -35,22 +49,54 @@
         button {
             width: 100%;
             padding: 10px;
-            background-color: #28a745;
+            background-color: #3e045a;
             color: white;
             border: none;
             border-radius: 4px;
             font-size: 16px;
             cursor: pointer;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s;
         }
-        button:hover { background-color: #218838; }
+        button:hover { background-color: #450662; }
+        
+        /* State tombol saat disabled (loading) */
+        button:disabled {
+            background-color: #8c5d9e; /* Warna ungu pudar */
+            cursor: not-allowed;
+        }
+
+        /* ANIMASI SPINNER LOADING */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #ffffff;
+            width: 18px;
+            height: 18px;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+
         .hidden { display: none; }
-        .loading { text-align: center; font-style: italic; color: #666; margin-top: 10px; }
+        .loading { text-align: center; font-style: italic; color: #666; margin-top: 10px; font-weight: bold;}
     </style>
 </head>
 <body>
 
+    <div id="aurora-bg" class="aurora-container"></div>
+
     <div class="container" id="login-section">
-        <h2>Login User</h2>
+        <h2>Login Dulu Ya Sayang 😁</h2>
         <form id="login-form">
             <div class="form-group">
                 <label for="username">Username</label>
@@ -60,12 +106,13 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" placeholder="Masukkan password" required>
             </div>
-            <button type="submit">Masuk</button>
+            <button type="submit" id="btn-login">Masuk</button>
+            <div id="login-loading" class="loading hidden">Sedang memverifikasi data...</div>
         </form>
     </div>
 
     <div class="container hidden" id="nabung-section">
-        <h2>Form Tabungan</h2>
+        <h2>Silahkan Isi Tabunganya Sayang 😁</h2>
         <form id="nabung-form">
             <div class="form-group">
                 <label for="tanggal">Tanggal (Otomatis)</label>
@@ -79,79 +126,234 @@
                 <label for="jumlah">Jumlah Tabungan (Rp)</label>
                 <input type="number" id="jumlah" name="jumlah" placeholder="Contoh: 50000" required>
             </div>
+            
             <button type="submit" id="btn-submit">Simpan Tabungan</button>
-            <div id="status-pesan" class="loading hidden">Menyimpan data...</div>
+            <button type="button" class="btn-secondary" onclick="window.location.href='data.html'">Lihat Tabungan</button>
+            <div id="nabung-loading" class="loading hidden">Menyimpan data...</div>
         </form>
     </div> 
+
     <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbxLigCBg2-W5a9grqqNAs44Li94HYVXfCMrZeF7SNAErnKyo_8-O_UtGhPLlbvcFUb_VQ/exec';
 
-  // JANGAN LUPA: Ganti dengan URL Web App Apps Script kamu yang terbaru!
-const scriptURL = 'https://script.google.com/macros/s/AKfycbxLigCBg2-W5a9grqqNAs44Li94HYVXfCMrZeF7SNAErnKyo_8-O_UtGhPLlbvcFUb_VQ/exec';
+        // Variabel elemen
+        const loginSection = document.getElementById('login-section');
+        const nabungSection = document.getElementById('nabung-section');
+        const loginForm = document.getElementById('login-form');
+        const nabungForm = document.getElementById('nabung-form');
+        const inputNama = document.getElementById('nama');
+        const inputTanggal = document.getElementById('tanggal');
+        
+        // Pemisahan ID agar tidak bentrok
+        const btnLogin = document.getElementById('btn-login');
+        const loginLoading = document.getElementById('login-loading');
+        
+        const btnSubmit = document.getElementById('btn-submit');
+        const nabungLoading = document.getElementById('nabung-loading');
 
-// === BAGIAN DEKLARASI VARIABEL (Ini yang tadi hilang / bikin error) ===
-const loginSection = document.getElementById('login-section');
-const nabungSection = document.getElementById('nabung-section');
-const loginForm = document.getElementById('login-form');
-const nabungForm = document.getElementById('nabung-form');
-const inputNama = document.getElementById('nama');
-const inputTanggal = document.getElementById('tanggal');
-const statusPesan = document.getElementById('status-pesan');
-const btnSubmit = document.getElementById('btn-submit');
+        // === LOGIKA LOGIN ===
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
 
-// === 1. LOGIKA LOGIN DARI SPREADSHEET ===
-loginForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    const user = document.getElementById('username').value;
-    const pass = document.getElementById('password').value;
+            // 1. Tampilkan Animasi Loading di tombol & Teks dibawah
+            btnLogin.disabled = true; // Kunci tombol agar tidak bisa di-spam klik
+            btnLogin.innerHTML = '<div class="spinner"></div> Memverifikasi...';
+            loginLoading.classList.remove('hidden');
 
-    const loginData = new FormData();
-    loginData.append('action', 'login');
-    loginData.append('username', user);
-    loginData.append('password', pass);
+            const loginData = new FormData();
+            loginData.append('action', 'login');
+            loginData.append('username', user);
+            loginData.append('password', pass);
 
-    fetch(scriptURL, { method: 'POST', body: loginData })
-        .then(response => response.text())
-        .then(result => {
-            console.log("Respon Server: ", result); // Untuk ngecek di console
+            fetch(scriptURL, { method: 'POST', body: loginData })
+                .then(response => response.text())
+                .then(result => {
+                    // 2. Matikan Animasi Loading setelah server merespon
+                    btnLogin.disabled = false;
+                    btnLogin.innerHTML = 'Masuk';
+                    loginLoading.classList.add('hidden');
 
-            if (result.trim() === "Login_Success") {
-                loginSection.classList.add('hidden');
-                nabungSection.classList.remove('hidden');
-                inputNama.value = user;
-                inputTanggal.value = new Date().toISOString().split('T')[0];
-            } else {
-                alert("Username atau Password salah!");
+                    if (result.trim() === "Login_Success") {
+                        loginSection.classList.add('hidden');
+                        nabungSection.classList.remove('hidden');
+                        inputNama.value = user;
+                        inputTanggal.value = new Date().toISOString().split('T')[0];
+                    } else {
+                        alert("Username atau Password salah!");
+                    }
+                })
+                .catch(error => {
+                    // Matikan loading jika gagal/koneksi error
+                    btnLogin.disabled = false;
+                    btnLogin.innerHTML = 'Masuk';
+                    loginLoading.classList.add('hidden');
+                    console.error('Error saat login:', error);
+                    alert('Gagal menghubungi server. Pastikan koneksi lancar.');
+                });
+        });
+
+        // === LOGIKA SIMPAN TABUNGAN ===
+        nabungForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Tampilkan animasi loading saat menyimpan
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<div class="spinner"></div> Menyimpan...';
+            nabungLoading.classList.remove('hidden');
+
+            const formData = new FormData(nabungForm);
+            formData.append('action', 'saveData');
+
+            fetch(scriptURL, { method: 'POST', body: formData })
+                .then(response => {
+                    alert('Tabungan berhasil dicatat ke sistem!');
+                    document.getElementById('jumlah').value = '';
+                    
+                    // Kembalikan tombol ke semula
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = 'Simpan Tabungan';
+                    nabungLoading.classList.add('hidden');
+                })
+                .catch(error => {
+                    console.error('Error saat simpan:', error);
+                    alert('Gagal menyimpan data.');
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = 'Simpan Tabungan';
+                    nabungLoading.classList.add('hidden');
+                });
+        });
+    </script>
+
+    <script type="module">
+        import { Renderer, Program, Mesh, Color, Triangle } from 'https://unpkg.com/ogl';
+
+        const VERT = `#version 300 es
+        in vec2 position;
+        void main() {
+            gl_Position = vec4(position, 0.0, 1.0);
+        }`;
+
+        const FRAG = `#version 300 es
+        precision highp float;
+        uniform float uTime;
+        uniform float uAmplitude;
+        uniform vec3 uColorStops[3];
+        uniform vec2 uResolution;
+        uniform float uBlend;
+        out vec4 fragColor;
+
+        vec3 permute(vec3 x) { return mod(((x * 34.0) + 1.0) * x, 289.0); }
+
+        float snoise(vec2 v){
+            const vec4 C = vec4(
+                0.211324865405187, 0.366025403784439,
+                -0.577350269189626, 0.024390243902439
+            );
+            vec2 i  = floor(v + dot(v, C.yy));
+            vec2 x0 = v - i + dot(i, C.xx);
+            vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+            vec4 x12 = x0.xyxy + C.xxzz;
+            x12.xy -= i1;
+            i = mod(i, 289.0);
+            vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+            vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
+            m = m * m; m = m * m;
+            vec3 x = 2.0 * fract(p * C.www) - 1.0;
+            vec3 h = abs(x) - 0.5;
+            vec3 ox = floor(x + 0.5);
+            vec3 a0 = x - ox;
+            m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+            vec3 g;
+            g.x  = a0.x  * x0.x  + h.x  * x0.y;
+            g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+            return 130.0 * dot(m, g);
+        }
+
+        struct ColorStop { vec3 color; float position; };
+
+        #define COLOR_RAMP(colors, factor, finalColor) { \
+            int index = 0; \
+            for (int i = 0; i < 2; i++) { \
+                ColorStop currentColor = colors[i]; \
+                bool isInBetween = currentColor.position <= factor; \
+                index = int(mix(float(index), float(i), float(isInBetween))); \
+            } \
+            ColorStop currentColor = colors[index]; \
+            ColorStop nextColor = colors[index + 1]; \
+            float range = nextColor.position - currentColor.position; \
+            float lerpFactor = (factor - currentColor.position) / range; \
+            finalColor = mix(currentColor.color, nextColor.color, lerpFactor); \
+        }
+
+        void main() {
+            vec2 uv = gl_FragCoord.xy / uResolution;
+            ColorStop colors[3];
+            colors[0] = ColorStop(uColorStops[0], 0.0);
+            colors[1] = ColorStop(uColorStops[1], 0.5);
+            colors[2] = ColorStop(uColorStops[2], 1.0);
+            
+            vec3 rampColor;
+            COLOR_RAMP(colors, uv.x, rampColor);
+            
+            float height = snoise(vec2(uv.x * 2.0 + uTime * 0.1, uTime * 0.25)) * 0.5 * uAmplitude;
+            height = exp(height);
+            height = (uv.y * 2.0 - height + 0.2);
+            float intensity = 0.6 * height;
+            
+            float midPoint = 0.20;
+            float auroraAlpha = smoothstep(midPoint - uBlend * 0.5, midPoint + uBlend * 0.5, intensity);
+            
+            vec3 auroraColor = intensity * rampColor;
+            fragColor = vec4(auroraColor * auroraAlpha, auroraAlpha);
+        }
+        `;
+
+        const ctn = document.getElementById('aurora-bg');
+        const renderer = new Renderer({ alpha: true, premultipliedAlpha: true, antialias: true });
+        const gl = renderer.gl;
+        gl.clearColor(0, 0, 0, 0);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        gl.canvas.style.backgroundColor = 'transparent';
+        ctn.appendChild(gl.canvas);
+
+        const geometry = new Triangle(gl);
+        
+        const colorStops = ['#5227FF', '#7cff67', '#5227FF'];
+        const colorStopsArray = colorStops.map(hex => {
+            const c = new Color(hex);
+            return [c[0], c[1], c[2]]; 
+        });
+
+        const program = new Program(gl, {
+            vertex: VERT,
+            fragment: FRAG,
+            uniforms: {
+                uTime: { value: 0 },
+                uAmplitude: { value: 1.0 },
+                uColorStops: { value: colorStopsArray },
+                uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
+                uBlend: { value: 0.5 }
             }
-        })
-        .catch(error => {
-            console.error('Error saat login:', error);
-            alert('Gagal menghubungi server.');
         });
-});
 
-// === 2. LOGIKA SIMPAN TABUNGAN ===
-nabungForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    btnSubmit.classList.add('hidden');
-    statusPesan.classList.remove('hidden');
+        const mesh = new Mesh(gl, { geometry, program });
 
-    const formData = new FormData(nabungForm);
-    formData.append('action', 'saveData');
+        function resize() {
+            renderer.setSize(ctn.offsetWidth, ctn.offsetHeight);
+            program.uniforms.uResolution.value = [ctn.offsetWidth, ctn.offsetHeight];
+        }
+        window.addEventListener('resize', resize);
+        resize();
 
-    fetch(scriptURL, { method: 'POST', body: formData })
-        .then(response => {
-            alert('Tabungan berhasil dicatat ke sistem!');
-            document.getElementById('jumlah').value = '';
-            btnSubmit.classList.remove('hidden');
-            statusPesan.classList.add('hidden');
-        })
-        .catch(error => {
-            console.error('Error saat simpan:', error);
-            alert('Gagal menyimpan data.');
-            btnSubmit.classList.remove('hidden');
-            statusPesan.classList.add('hidden');
-        });
-});
-</script>
+        function update(t) {
+            requestAnimationFrame(update);
+            program.uniforms.uTime.value = t * 0.001; 
+            renderer.render({ scene: mesh });
+        }
+        requestAnimationFrame(update);
+    </script>
 </body>
 </html>
