@@ -11,9 +11,11 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh; /* Menggunakan min-height agar aman saat di-scroll */
             margin: 0;
             overflow: hidden;
+            padding: 20px; /* Memberi jarak aman dari pinggir layar HP */
+            box-sizing: border-box;
         }
         
         .aurora-container {
@@ -27,32 +29,43 @@
 
         .container {
             background: rgba(255, 255, 255, 0.9);
-            padding: 30px;
-            border-radius: 8px;
+            /* Padding disesuaikan: atas-bawah 30px, kiri-kanan 20px */
+            padding: 30px 20px; 
+            border-radius: 12px; /* Dibuat sedikit lebih melengkung */
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             width: 100%;
             max-width: 400px;
             position: relative; 
             z-index: 10;
+            box-sizing: border-box; /* Agar padding tidak menambah lebar kotak */
         }
         
-        h2 { text-align: center; color: #333; }
+        h2 { 
+            text-align: center; 
+            color: #333; 
+            margin-top: 0;
+            font-size: 1.5rem; /* Ukuran font dinamis */
+        }
+        
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        
         input[type="text"], input[type="password"], input[type="number"], input[type="date"] {
             width: 100%;
-            padding: 10px;
+            padding: 12px; /* Area sentuh diperbesar sedikit untuk jari */
             border: 1px solid #ccc;
-            border-radius: 4px;
+            border-radius: 6px;
             box-sizing: border-box;
+            font-size: 1rem; /* Mencegah auto-zoom di iOS/iPhone */
         }
+        
         button {
             width: 100%;
-            padding: 10px;
+            padding: 12px; /* Area sentuh diperbesar */
             background-color: #3e045a;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 16px;
             cursor: pointer;
             margin-bottom: 10px;
@@ -60,12 +73,12 @@
             justify-content: center;
             align-items: center;
             transition: background-color 0.3s;
+            font-weight: bold;
         }
         button:hover { background-color: #450662; }
         
-        /* State tombol saat disabled (loading) */
         button:disabled {
-            background-color: #8c5d9e; /* Warna ungu pudar */
+            background-color: #8c5d9e; 
             cursor: not-allowed;
         }
 
@@ -88,7 +101,20 @@
         .btn-secondary:hover { background-color: #5a6268; }
 
         .hidden { display: none; }
-        .loading { text-align: center; font-style: italic; color: #666; margin-top: 10px; font-weight: bold;}
+        .loading { text-align: center; font-style: italic; color: #666; margin-top: 10px; font-weight: bold; font-size: 0.9rem;}
+
+        /* Media Query Khusus HP Layar Sangat Kecil (contoh iPhone SE) */
+        @media (max-width: 360px) {
+            .container {
+                padding: 20px 15px;
+            }
+            h2 {
+                font-size: 1.3rem;
+            }
+            button {
+                font-size: 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -112,7 +138,7 @@
     </div>
 
     <div class="container hidden" id="nabung-section">
-        <h2>Silahkan Isi Tabunganya Sayang 😁</h2>
+        <h2>Silahkan Isi Tabungannya Sayang 😁</h2>
         <form id="nabung-form">
             <div class="form-group">
                 <label for="tanggal">Tanggal (Otomatis)</label>
@@ -136,7 +162,6 @@
     <script>
         const scriptURL = 'https://script.google.com/macros/s/AKfycbxLigCBg2-W5a9grqqNAs44Li94HYVXfCMrZeF7SNAErnKyo_8-O_UtGhPLlbvcFUb_VQ/exec';
 
-        // Variabel elemen
         const loginSection = document.getElementById('login-section');
         const nabungSection = document.getElementById('nabung-section');
         const loginForm = document.getElementById('login-form');
@@ -144,21 +169,18 @@
         const inputNama = document.getElementById('nama');
         const inputTanggal = document.getElementById('tanggal');
         
-        // Pemisahan ID agar tidak bentrok
         const btnLogin = document.getElementById('btn-login');
         const loginLoading = document.getElementById('login-loading');
         
         const btnSubmit = document.getElementById('btn-submit');
         const nabungLoading = document.getElementById('nabung-loading');
 
-        // === LOGIKA LOGIN ===
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
 
-            // 1. Tampilkan Animasi Loading di tombol & Teks dibawah
-            btnLogin.disabled = true; // Kunci tombol agar tidak bisa di-spam klik
+            btnLogin.disabled = true;
             btnLogin.innerHTML = '<div class="spinner"></div> Memverifikasi...';
             loginLoading.classList.remove('hidden');
 
@@ -170,7 +192,6 @@
             fetch(scriptURL, { method: 'POST', body: loginData })
                 .then(response => response.text())
                 .then(result => {
-                    // 2. Matikan Animasi Loading setelah server merespon
                     btnLogin.disabled = false;
                     btnLogin.innerHTML = 'Masuk';
                     loginLoading.classList.add('hidden');
@@ -185,7 +206,6 @@
                     }
                 })
                 .catch(error => {
-                    // Matikan loading jika gagal/koneksi error
                     btnLogin.disabled = false;
                     btnLogin.innerHTML = 'Masuk';
                     loginLoading.classList.add('hidden');
@@ -194,11 +214,9 @@
                 });
         });
 
-        // === LOGIKA SIMPAN TABUNGAN ===
         nabungForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // Tampilkan animasi loading saat menyimpan
             btnSubmit.disabled = true;
             btnSubmit.innerHTML = '<div class="spinner"></div> Menyimpan...';
             nabungLoading.classList.remove('hidden');
@@ -211,7 +229,6 @@
                     alert('Tabungan berhasil dicatat ke sistem!');
                     document.getElementById('jumlah').value = '';
                     
-                    // Kembalikan tombol ke semula
                     btnSubmit.disabled = false;
                     btnSubmit.innerHTML = 'Simpan Tabungan';
                     nabungLoading.classList.add('hidden');
